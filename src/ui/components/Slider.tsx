@@ -20,6 +20,8 @@ export default class Slider extends React.Component<Props> {
     this.state = {
       id: null,
       value: null,
+      min: null,
+      max: null,
       hasInput: false
     }
   }
@@ -38,18 +40,41 @@ export default class Slider extends React.Component<Props> {
           tooltip = knob.children[0],
           rangeWidth = range.offsetWidth,
           slider = range.parentElement,
-          knobs = Array.from(range.childNodes as HTMLCollectionOf<HTMLElement>);
+          knobs = Array.from(range.childNodes as HTMLCollectionOf<HTMLElement>),
+          gap = this.doMap(2, 0, 100, 0, rangeWidth);
 
     let offset,
         update = setInterval(() => this.props.onChange(), 500);
 
     if ((e.timeStamp - this.time) < 300) {
-      this.onDoubleClick(knob.style.left.slice(0, -1));
+      if (knob == range.lastChild)
+        this.onDoubleClick(
+          knob.classList[1],
+          knob.style.left.slice(0, -1),
+          0,
+          this.doMap((knob.previousElementSibling.offsetLeft - gap), 0, rangeWidth, 0, 100).toFixed(1)
+        )
+      else if (knob == range.firstChild)
+        this.onDoubleClick(
+          knob.classList[1],
+          knob.style.left.slice(0, -1),
+          this.doMap((knob.nextElementSibling.offsetLeft + gap), 0, rangeWidth, 0, 100).toFixed(1),
+          100
+        )
+      else
+        this.onDoubleClick(
+          knob.classList[1],
+          knob.style.left.slice(0, -1),
+          this.doMap((knob.nextElementSibling.offsetLeft + gap), 0, rangeWidth, 0, 100).toFixed(1),
+          this.doMap((knob.previousElementSibling.offsetLeft - gap), 0, rangeWidth, 0, 100).toFixed(1)
+        );
+
       this.time = 0
-    };
+    } else
+      this.setState({ hasInput: false });
 
     this.time = e.timeStamp;
-    knob.style.zIndex = 2;
+    knob.style.zIndex = '2';
 
     document.onmousemove = (e) => this.onSlide(
       e,
@@ -60,7 +85,8 @@ export default class Slider extends React.Component<Props> {
       tooltip,
       offset,
       shift,
-      rangeWidth
+      rangeWidth,
+      gap
     );
 
     document.onmouseup = () => this.onRelease(
@@ -72,9 +98,8 @@ export default class Slider extends React.Component<Props> {
     )
   }
 
-  onSlide = (e, slider, range, knobs, knob, tooltip, offset, shift, rangeWidth) => {
+  onSlide = (e, slider, range, knobs, knob, tooltip, offset, shift, rangeWidth, gap) => {
     let limitMin, limitMax;
-    const gap = this.doMap(2, 0, 100, 0, rangeWidth);
     offset = e.clientX - slider.offsetLeft - shift;
 
     palette.min = parseFloat(this.doMap(range.lastChild.offsetLeft, 0, rangeWidth, 0, 100).toFixed(1));
@@ -118,23 +143,39 @@ export default class Slider extends React.Component<Props> {
     // update lightness scale
     knobs.forEach(knob => this.updateLightnessScaleEntry(knob.classList[1], this.doMap(knob.offsetLeft, 0, rangeWidth, 0, 100).toFixed(1)));
     this.updateKnobTooltip(tooltip, this.doMap(offset, 0, rangeWidth, 0, 100).toFixed(1));
+    console.log(palette.scale)
   }
 
   onRelease = (knobs, knob, offset, update, rangeWidth) => {
     document.onmousemove = null;
     document.onmouseup = null;
     knob.onmouseup = null;
-    knob.style.zIndex = 1;
+    knob.style.zIndex = '1';
     knobs.forEach(knob => (knob.children[0] as HTMLElement).style.display = 'none');
     clearInterval(update)
   }
 
-  onDoubleClick = (value: string) => {
-    this.setState({ hasInput: true, value: value })
+  onDoubleClick = (id: string, value: string, min: number, max: number) => {
+    console.log(palette.scale)
+    this.setState({ hasInput: true, id: id, value: value, min: min, max: max })
   }
 
-  onEdit = () => {
-    console.log('ok')
+  onEdit = (e: any) => {
+    const knob = document.getElementsByClassName(this.state['id'])[0] as HTMLElement,
+          value = parseFloat(e.target.value),
+          min = parseFloat(e.target.min),
+          max = parseFloat(e.target.max);
+
+    if (value < min)
+      e.target.value = min
+    else if (value > max)
+      e.target.value = max;
+
+    palette.scale[this.state['id']] = e.target.value;
+    knob.style.left = e.target.value + '%';
+    knob.style.zIndex = '2';
+    knob.childNodes[0].textContent = e.target.value;
+    this.setState({ value: e.target.value })
   }
 
   // Actions
@@ -176,7 +217,7 @@ export default class Slider extends React.Component<Props> {
     knobs.forEach(knob => {
       let shift = (knob.offsetLeft - src.offsetLeft) + offset;
       if (knob != src)
-        knob.style.left = this.doMap(shift, 0, width, 0, 100) + '%';
+        knob.style.left = this.doMap(shift, 0, width, 0, 100).toFixed(1) + '%';
       this.updateKnobTooltip(knob.childNodes[0], palette.scale[knob.classList[1]])
     })
   }
@@ -216,8 +257,8 @@ export default class Slider extends React.Component<Props> {
         {this.props.type == 'EQUAL' ? <this.Equal /> : null}
         {this.props.type == 'CUSTOM' ? <this.Custom /> : null}
         {this.state['hasInput'] ?
-          <div className='slider__input' style={{left: `${this.state['value']}%`}}>
-            <NumericStepper min='0' max='100' step='0.1' value={this.state['value']} onChange={this.onEdit} />
+          <div id={this.state['id']} className='slider__input' style={{left: `${this.state['value']}%`}}>
+            <NumericStepper min={this.state['min']} max={this.state['max']} step='0.1' value={this.state['value']} onChange={this.onEdit}/>
           </div>
         : null}
       </div>
