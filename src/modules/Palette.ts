@@ -1,5 +1,6 @@
 import chroma from 'chroma-js';
 import Sample from './Sample';
+import Header from './Header';
 
 export default class Palette {
 
@@ -22,6 +23,7 @@ export default class Palette {
   }
 
   makeNode() {
+    // Palette
     this.node.layoutMode = 'VERTICAL';
     this.node.primaryAxisSizingMode = 'AUTO';
     this.node.counterAxisSizingMode = 'AUTO';
@@ -37,6 +39,24 @@ export default class Palette {
     else
       this.node.setPluginData('captions', 'hasNotCaptions');
 
+    // Colors
+    const colors = figma.createFrame();
+    colors.layoutMode = 'VERTICAL';
+    colors.primaryAxisSizingMode = 'AUTO';
+    colors.counterAxisSizingMode = 'AUTO';
+    colors.name = 'colors';
+
+    // Header
+    const header = figma.createFrame();
+    header.layoutMode = 'HORIZONTAL';
+    header.primaryAxisSizingMode = 'FIXED';
+    header.counterAxisSizingMode = 'AUTO';
+    header.name = 'header';
+    header.layoutAlign = 'STRETCH';
+
+    Object.keys(this.scale).reverse().forEach(lightness => header.appendChild(new Header(lightness, lightness.replace('lightness-', '')).makeNode()))
+
+    // Rows
     figma.currentPage.selection.forEach(element => {
 
       let fills = element['fills'].filter(fill => fill.type === 'SOLID');
@@ -61,7 +81,7 @@ export default class Palette {
             row.appendChild(sample)
           });
 
-          this.node.appendChild(row);
+          colors.appendChild(row);
 
         })
 
@@ -71,7 +91,11 @@ export default class Palette {
 
     });
 
+    // Render
+    this.node.appendChild(header);
+    this.node.appendChild(colors);
     this.node.setPluginData('colors', JSON.stringify(this.colors));
+
     return this.node
   }
 
