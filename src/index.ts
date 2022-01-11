@@ -50,9 +50,9 @@ figma.ui.onmessage = msg => {
       palette.setPluginData('max', msg.palette.max.toString());
       palette.setPluginData('scale', JSON.stringify(msg.palette.scale));
 
-      for (let i = 0 ; i < (palette as FrameNode).children.length ; i++) {
+      for (let i = 0 ; i < (palette.children[1] as FrameNode).children.length ; i++) {
         const rgb = JSON.parse(palette.getPluginData('colors'))[i],
-              row = (palette as FrameNode).children[i];
+              row = (palette.children[1] as FrameNode).children[i];
 
         for (let j = 0 ; j < (row as FrameNode).children.length ; j++) {
           const sample = (row as FrameNode).children[j],
@@ -76,7 +76,7 @@ figma.ui.onmessage = msg => {
 
       if (msg.palette.captions) {
         palette.setPluginData('captions', 'hasCaptions');
-        palette.children.forEach(row => {
+        palette.children[1].children.forEach(row => {
           row.children.forEach(sample => {
             sample.children.forEach(caption => {
               caption.visible = true
@@ -85,7 +85,7 @@ figma.ui.onmessage = msg => {
         })
       } else {
         palette.setPluginData('captions', 'hasNotCaptions');
-        palette.children.forEach(row => {
+        palette.children[1].children.forEach(row => {
           row.children.forEach(sample => {
             sample.children.forEach(caption => {
               caption.visible = false
@@ -110,7 +110,7 @@ figma.ui.onmessage = msg => {
       palette = figma.currentPage.selection[0];
       i = 0;
 
-      palette.children.forEach(row => {
+      palette.children[1].children.forEach(row => {
         row.children.forEach(sample => {
           const style = new Style(
             sample.name.replace('-', '/'),
@@ -128,7 +128,7 @@ figma.ui.onmessage = msg => {
       const localStyles = figma.getLocalPaintStyles();
       i = 0;
 
-      palette.children.forEach(row => {
+      palette.children[1].children.forEach(row => {
         row.children.forEach(sample => {
           localStyles.forEach(localStyle => {
             if (sample.name === localStyle.name.replace('/', '-')) {
